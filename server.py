@@ -16,6 +16,18 @@ def _env(name, default=None):
     return value.strip() if isinstance(value, str) else value
 
 
+def _allowed_origin():
+    return _env("FRONTEND_ORIGIN", "*")
+
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = _allowed_origin()
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS, GET"
+    return response
+
+
 def send_telegram_message(name, email, message):
     bot_token = _env("TELEGRAM_BOT_TOKEN")
     chat_id = _env("TELEGRAM_CHAT_ID")
@@ -43,7 +55,12 @@ def send_telegram_message(name, email, message):
 
 @app.get("/")
 def index():
-    return send_from_directory(".", "main.html")
+    return send_from_directory(".", "index.html")
+
+
+@app.route("/api/contact", methods=["OPTIONS"])
+def contact_options():
+    return ("", 204)
 
 
 @app.post("/api/contact")
@@ -79,4 +96,4 @@ def contact():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=int(_env("PORT", "5000")), debug=True)

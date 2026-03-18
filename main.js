@@ -5,6 +5,7 @@ const sections = document.querySelectorAll('main section');
 const form = document.getElementById('contactForm');
 const formNote = document.getElementById('formNote');
 const revealTargets = document.querySelectorAll('.card, .logo-card, .tag, h2');
+const contactApiUrl = window.CONTACT_API_URL || 'http://127.0.0.1:5000/api/contact';
 
 if (navToggle && nav) {
   navToggle.addEventListener('click', () => {
@@ -72,7 +73,7 @@ if (form) {
       submitButton.textContent = 'Отправляем...';
     }
 
-    fetch('/api/contact', {
+    fetch(contactApiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
