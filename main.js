@@ -55,7 +55,46 @@ sections.forEach((section) => sectionObserver.observe(section));
 if (form) {
   form.addEventListener('submit', (event) => {
     event.preventDefault();
-    form.reset();
-    formNote.textContent = 'Thank you. Your message has been received. We will contact you soon.';
+    formNote.textContent = '';
+    formNote.classList.remove('success', 'error');
+
+    const formData = new FormData(form);
+    const payload = {
+      name: formData.get('name')?.toString().trim(),
+      email: formData.get('email')?.toString().trim(),
+      website: formData.get('website')?.toString().trim(),
+      message: formData.get('message')?.toString().trim(),
+    };
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Отправляем...';
+    }
+
+    fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || 'Не удалось отправить сообщение.');
+        }
+        form.reset();
+        formNote.textContent = 'Спасибо! Сообщение отправлено.';
+        formNote.classList.add('success');
+      })
+      .catch((error) => {
+        formNote.textContent = error.message || 'Произошла ошибка при отправке.';
+        formNote.classList.add('error');
+      })
+      .finally(() => {
+        if (submitButton) {
+          submitButton.disabled = false;
+          submitButton.textContent = 'Отправить';
+        }
+      });
   });
 }
