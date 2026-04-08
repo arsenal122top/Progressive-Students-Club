@@ -1,7 +1,7 @@
 const team = [
   {
     name: "\u041a\u0441\u0435\u043d\u0438\u044f \u0410\u043b\u0435\u043a\u0441\u0430\u043d\u0434\u0440\u043e\u0432\u043d\u0430",
-    role: "\u041a\u0443\u0440\u0430\u0442\u043e\u0440 \u043a\u043b\u0443\u0431\u0430",
+    role: "",
     className: "\u041d\u0430\u0441\u0442\u0430\u0432\u043d\u0438\u043a",
     description: "\u0421\u043e\u043f\u0440\u043e\u0432\u043e\u0436\u0434\u0430\u0435\u0442 \u0440\u0430\u0437\u0432\u0438\u0442\u0438\u0435 \u043a\u043b\u0443\u0431\u0430 \u0438 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 \u043a\u043e\u043c\u0430\u043d\u0434\u0443.",
     details: "\u041e\u0442\u0432\u0435\u0447\u0430\u0435\u0442 \u0437\u0430 \u043e\u0431\u0449\u0435\u0435 \u043d\u0430\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043a\u043b\u0443\u0431\u0430, \u043f\u043e\u043c\u043e\u0433\u0430\u0435\u0442 \u0443\u0447\u0430\u0441\u0442\u043d\u0438\u043a\u0430\u043c \u0440\u0430\u0441\u0442\u0438 \u0438 \u043a\u043e\u043e\u0440\u0434\u0438\u043d\u0438\u0440\u0443\u0435\u0442 \u0440\u0430\u0437\u0432\u0438\u0442\u0438\u0435 \u043f\u0440\u043e\u0435\u043a\u0442\u0430.",
@@ -42,7 +42,7 @@ const team = [
     description: "\u0421\u043e\u0437\u0434\u0430\u0451\u0442 \u0442\u0435\u043a\u0441\u0442\u043e\u0432\u044b\u0439 \u043a\u043e\u043d\u0442\u0435\u043d\u0442.",
     details: "\u041f\u0438\u0448\u0435\u0442 \u0442\u0435\u043a\u0441\u0442\u044b \u0434\u043b\u044f \u043f\u0440\u043e\u0435\u043a\u0442\u0430.",
     accent: ["#86efac", "#16a34a"],
-    image: ""
+    image: "team/images/ажара.jpg"
   },
   {
     name: "\u0410\u0441\u043a\u0430\u0440\u043e\u0432\u0430 \u0414\u0430\u044f\u043d\u0430",
@@ -208,9 +208,23 @@ const preparedTeam = team.map((member) => ({
   image: member.image || createAvatarDataUri(member.name, member.accent),
 }));
 
-function createTeamCard(member, { compact = false, interactive = false } = {}) {
+const featuredMemberName = "Ксения Александровна";
+const priorityMemberNames = [
+  "Алымкулов Арсен",
+  "Красная София",
+  "Лоянов Ридван",
+];
+
+const orderedTeam = [
+  ...preparedTeam.filter((member) => priorityMemberNames.includes(member.name)),
+  ...preparedTeam.filter(
+    (member) => member.name !== featuredMemberName && !priorityMemberNames.includes(member.name)
+  ),
+];
+
+function createTeamCard(member, { compact = false, interactive = false, featured = false } = {}) {
   const article = document.createElement("article");
-  article.className = "card team-member-card";
+  article.className = `card team-member-card${featured ? " team-member-card-featured" : ""}`;
 
   const roleBlock = member.role ? `<p class="team-member-role">${member.role}</p>` : "";
   const badges = [member.className, member.role].filter(Boolean);
@@ -277,13 +291,30 @@ function applyRevealAnimation(elements) {
 
 function renderTeamPreview() {
   const previewRoot = document.querySelector("[data-team-preview]");
-  if (!previewRoot) return;
+  const featuredRoot = document.querySelector("[data-team-featured]");
+  const featuredMember = preparedTeam.find((member) => member.name === featuredMemberName);
+  const restMembers = orderedTeam;
+
+  if (featuredRoot && featuredMember) {
+    featuredRoot.innerHTML = "";
+    featuredRoot.appendChild(createTeamCard(featuredMember, { compact: false, featured: true }));
+  }
+
+  if (!previewRoot) {
+    if (featuredRoot) {
+      applyRevealAnimation(featuredRoot.querySelectorAll(".team-member-card"));
+    }
+    return;
+  }
 
   previewRoot.innerHTML = "";
-  preparedTeam.slice(0, 4).forEach((member) => {
+  restMembers.slice(0, 4).forEach((member) => {
     previewRoot.appendChild(createTeamCard(member, { compact: true }));
   });
 
+  if (featuredRoot) {
+    applyRevealAnimation(featuredRoot.querySelectorAll(".team-member-card"));
+  }
   applyRevealAnimation(previewRoot.querySelectorAll(".team-member-card"));
 }
 
@@ -356,20 +387,31 @@ function setupTeamModal(members) {
 
 function renderTeamPage() {
   const grid = document.querySelector("[data-team-grid]");
+  const featuredRoot = document.querySelector("[data-team-featured]");
   if (!grid) return;
 
   const roleFilter = document.querySelector("[data-team-role-filter]");
   const classFilter = document.querySelector("[data-team-class-filter]");
   const emptyState = document.querySelector("[data-team-empty]");
   const modalApi = setupTeamModal(preparedTeam);
+  const featuredMember = preparedTeam.find((member) => member.name === featuredMemberName);
 
   renderTeamFilters(preparedTeam);
+
+  if (featuredRoot && featuredMember) {
+    featuredRoot.innerHTML = "";
+    const featuredCard = createTeamCard(featuredMember, { interactive: true, featured: true });
+    featuredCard.querySelector(".team-member-button")?.addEventListener("click", () => {
+      modalApi?.openModal(featuredMember.name);
+    });
+    featuredRoot.appendChild(featuredCard);
+  }
 
   const draw = () => {
     const selectedRole = roleFilter?.value || "";
     const selectedClass = classFilter?.value || "";
 
-    const filtered = preparedTeam.filter((member) => {
+    const filtered = orderedTeam.filter((member) => {
       const roleMatch = !selectedRole || member.role === selectedRole;
       const classMatch = !selectedClass || member.className === selectedClass;
       return roleMatch && classMatch;
@@ -388,6 +430,19 @@ function renderTeamPage() {
       emptyState.hidden = filtered.length > 0;
     }
 
+    if (featuredRoot) {
+      const showFeatured = !selectedRole || featuredMember?.role === selectedRole;
+      const showFeaturedByClass = !selectedClass || featuredMember?.className === selectedClass;
+      featuredRoot.hidden = !(showFeatured && showFeaturedByClass);
+    }
+
+    if (emptyState && featuredRoot?.hidden === false) {
+      emptyState.hidden = true;
+    }
+
+    if (featuredRoot) {
+      applyRevealAnimation(featuredRoot.querySelectorAll(".team-member-card"));
+    }
     applyRevealAnimation(grid.querySelectorAll(".team-member-card"));
   };
 
